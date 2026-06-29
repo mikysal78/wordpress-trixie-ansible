@@ -14,5 +14,5 @@ php_extensions:
 
 php_fpm_pool: "www"
 # Dimensionamento dinamico del pool in base alla RAM (≈ 50MB per child)
-php_fpm_max_children: "{{ [ (ct_memory_mb | int // 50), 5 ] | max }}"
+php_fpm_max_children: "{{ [(ct_memory_mb | int // 50), 5] | max }}"
 php_opcache_memory_mb: 128

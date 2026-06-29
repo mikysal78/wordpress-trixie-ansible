@@ -40,7 +40,7 @@
     dest: /etc/ssh/sshd_config.d/99-hardening.conf
     mode: "0644"
     validate: "sshd -t -f %s"
-  notify: restart ssh
+  notify: Restart ssh
 
 # ---------- sysctl (Trixie: solo /etc/sysctl.d/, best-effort in LXC) ----------
 - name: Applica parametri sysctl di sicurezza
@@ -48,7 +48,7 @@
     src: 99-hardening-sysctl.conf.j2
     dest: /etc/sysctl.d/99-hardening.conf
     mode: "0644"
-  notify: reload sysctl
+  notify: Reload sysctl
 
 - name: Carica i sysctl (ignora i parametri non scrivibili in LXC unprivileged)
   ansible.builtin.command: sysctl --system
@@ -101,7 +101,7 @@
     src: jail.local.j2
     dest: /etc/fail2ban/jail.local
     mode: "0644"
-  notify: restart fail2ban
+  notify: Restart fail2ban
 
 - name: Abilita e avvia fail2ban
   ansible.builtin.service:

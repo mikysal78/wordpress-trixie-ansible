@@ -1,7 +1,7 @@
 ---
 - name: Installa certbot e il plugin nginx
   ansible.builtin.apt:
-    name: "{{ certbot_packages }}"
+    name: "{{ letsencrypt_certbot_packages }}"
     state: present
 
 - name: Raccogli lo stato dei servizi
@@ -44,7 +44,7 @@
 - name: Verifica se il certificato esiste gia'
   ansible.builtin.stat:
     path: "/etc/letsencrypt/live/{{ wp_domain }}/fullchain.pem"
-  register: le_cert
+  register: letsencrypt_cert
 
 - name: Emetti/installa il certificato con certbot (plugin nginx)
   ansible.builtin.command:
@@ -55,10 +55,10 @@
       --redirect --keep-until-expiring
       {{ '--staging' if letsencrypt_staging | bool else '' }}
       {{ '--force-renewal' if letsencrypt_force | bool else '' }}
-  register: certbot_run
-  when: (not le_cert.stat.exists) or (letsencrypt_force | bool)
-  changed_when: "'Congratulations' in certbot_run.stdout or 'Successfully' in certbot_run.stdout"
-  notify: reload nginx
+  register: letsencrypt_certbot_run
+  when: (not letsencrypt_cert.stat.exists) or (letsencrypt_force | bool)
+  changed_when: "'Congratulations' in letsencrypt_certbot_run.stdout or 'Successfully' in letsencrypt_certbot_run.stdout"
+  notify: Reload nginx
 
 - name: Assicura il timer di rinnovo automatico di certbot
   ansible.builtin.systemd_service:
@@ -70,5 +70,5 @@
 - name: Test a vuoto del rinnovo (dry-run) - solo con tag 'verify'
   ansible.builtin.command: certbot renew --dry-run
   changed_when: false
-  when: le_cert.stat.exists or (certbot_run is defined and certbot_run is changed)
+  when: letsencrypt_cert.stat.exists or (letsencrypt_certbot_run is defined and letsencrypt_certbot_run is changed)
   tags: [never, verify]

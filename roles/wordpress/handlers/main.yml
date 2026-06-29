@@ -1,5 +1,2 @@
 ---
-- name: reload php-fpm
-  ansible.builtin.service:
-    name: "php{{ php_version }}-fpm"
-    state: reloaded
+[]

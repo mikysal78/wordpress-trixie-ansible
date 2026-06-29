@@ -1,7 +1,7 @@
 ---
 - name: Installa MariaDB
   ansible.builtin.apt:
-    name: "{{ mariadb_packages }}"
+    name: "{{ database_packages }}"
     state: present
 
 - name: Abilita e avvia MariaDB
@@ -15,7 +15,7 @@
     src: 60-wordpress.cnf.j2
     dest: /etc/mysql/mariadb.conf.d/60-wordpress.cnf
     mode: "0644"
-  notify: restart mariadb
+  notify: Restart mariadb
 
 - name: Applica subito la configurazione MariaDB
   ansible.builtin.meta: flush_handlers

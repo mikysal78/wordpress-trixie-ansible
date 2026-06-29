@@ -15,14 +15,14 @@
     src: 99-wordpress.ini.j2
     dest: "/etc/php/{{ php_version }}/fpm/conf.d/99-wordpress.ini"
     mode: "0644"
-  notify: restart php-fpm
+  notify: Restart php-fpm
 
 - name: Configura il pool FPM
   ansible.builtin.template:
     src: pool.conf.j2
     dest: "/etc/php/{{ php_version }}/fpm/pool.d/{{ php_fpm_pool }}.conf"
     mode: "0644"
-  notify: restart php-fpm
+  notify: Restart php-fpm
 
 - name: Abilita e avvia PHP-FPM
   ansible.builtin.service:

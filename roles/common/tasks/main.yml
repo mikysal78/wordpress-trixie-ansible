@@ -1,5 +1,6 @@
 ---
 - name: Applica il ruolo base Ninux (mikysal78.ninux_common)
+  tags: [ninux_common]
   block:
     - name: Include mikysal78.ninux_common
       ansible.builtin.include_role:
@@ -8,7 +9,6 @@
     - name: Ruolo ninux_common non disponibile - proseguo
       ansible.builtin.debug:
         msg: "mikysal78.ninux_common non installato o fallito; continuo con i pacchetti base."
-  tags: [ninux_common]
 
 - name: Aggiorna la cache APT (valida 1h)
   ansible.builtin.apt:
@@ -18,10 +18,10 @@
 - name: Aggiornamento pacchetti di sistema (clean install)
   ansible.builtin.apt:
     upgrade: dist
-  register: apt_upgrade
+  register: common_apt_upgrade
   retries: 2
   delay: 5
-  until: apt_upgrade is succeeded
+  until: common_apt_upgrade is succeeded
 
 - name: Installa i pacchetti comuni
   ansible.builtin.apt:

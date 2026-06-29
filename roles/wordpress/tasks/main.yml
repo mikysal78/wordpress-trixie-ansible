@@ -2,20 +2,21 @@
 - name: Installa WP-CLI
   ansible.builtin.get_url:
     url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
-    dest: "{{ wp_cli_path }}"
+    dest: "{{ wordpress_cli_path }}"
     mode: "0755"
     force: false
 
 - name: Scarica il core di WordPress
   ansible.builtin.command: >
-    {{ wp_cli_path }} core download --locale={{ wp_locale }} --path={{ wp_root }}
+    {{ wordpress_cli_path }} core download --locale={{ wp_locale }} --path={{ wp_root }}
   args:
     creates: "{{ wp_root }}/wp-load.php"
+  become: true
   become_user: www-data
 
 - name: Genera wp-config.php
   ansible.builtin.command: >
-    {{ wp_cli_path }} config create
+    {{ wordpress_cli_path }} config create
     --path={{ wp_root }}
     --dbname={{ db_name }}
     --dbuser={{ db_user }}
@@ -26,71 +27,79 @@
     --skip-check
   args:
     creates: "{{ wp_root }}/wp-config.php"
+  become: true
   become_user: www-data
   no_log: true
 
 - name: Installa WordPress (crea admin e DB schema)
   ansible.builtin.command: >
-    {{ wp_cli_path }} core install
+    {{ wordpress_cli_path }} core install
     --path={{ wp_root }}
-    --url={{ wp_url }}
+    --url={{ wordpress_url }}
     --title="{{ wp_site_title }}"
     --admin_user={{ wp_admin_user }}
     --admin_password={{ wp_admin_password }}
     --admin_email={{ wp_admin_email }}
     --skip-email
-  register: wp_install
-  changed_when: "'already installed' not in wp_install.stderr"
+  register: wordpress_install
+  changed_when: "'already installed' not in wordpress_install.stderr"
   failed_when:
-    - wp_install.rc != 0
-    - "'already installed' not in wp_install.stderr"
+    - wordpress_install.rc != 0
+    - "'already installed' not in wordpress_install.stderr"
+  become: true
   become_user: www-data
   no_log: true
 
 # ---------- Hardening WordPress ----------
 - name: Imposta le chiavi di sicurezza (salts)
-  ansible.builtin.command: "{{ wp_cli_path }} config shuffle-salts --path={{ wp_root }}"
+  ansible.builtin.command: "{{ wordpress_cli_path }} config shuffle-salts --path={{ wp_root }}"
+  become: true
   become_user: www-data
   changed_when: true
 
 - name: Disabilita l'editor di file dalla dashboard
-  ansible.builtin.command: "{{ wp_cli_path }} config set DISALLOW_FILE_EDIT true --raw --path={{ wp_root }}"
+  ansible.builtin.command: "{{ wordpress_cli_path }} config set DISALLOW_FILE_EDIT true --raw --path={{ wp_root }}"
+  become: true
   become_user: www-data
   changed_when: true
 
 - name: Forza aggiornamenti automatici minor + sicurezza
-  ansible.builtin.command: "{{ wp_cli_path }} config set WP_AUTO_UPDATE_CORE minor --path={{ wp_root }}"
+  ansible.builtin.command: "{{ wordpress_cli_path }} config set WP_AUTO_UPDATE_CORE minor --path={{ wp_root }}"
+  become: true
   become_user: www-data
   changed_when: true
 
 # ---------- Redis object cache ----------
 - name: Configura le costanti Redis in wp-config
-  ansible.builtin.command: "{{ wp_cli_path }} config set {{ item.k }} {{ item.v }} {{ item.raw | default('') }} --path={{ wp_root }}"
+  ansible.builtin.command: "{{ wordpress_cli_path }} config set {{ item.k }} {{ item.v }} {{ item.raw | default('') }} --path={{ wp_root }}"
   loop:
     - { k: "WP_REDIS_HOST", v: "127.0.0.1" }
     - { k: "WP_REDIS_PORT", v: "6379", raw: "--raw" }
     - { k: "WP_CACHE", v: "true", raw: "--raw" }
+  become: true
   become_user: www-data
   changed_when: true
   when: enable_redis | bool
 
 - name: Installa e attiva il plugin redis-cache
-  ansible.builtin.command: "{{ wp_cli_path }} plugin install redis-cache --activate --path={{ wp_root }}"
-  register: redis_plugin
-  changed_when: "'Plugin already installed' not in redis_plugin.stdout"
+  ansible.builtin.command: "{{ wordpress_cli_path }} plugin install redis-cache --activate --path={{ wp_root }}"
+  register: wordpress_redis_plugin
+  changed_when: "'Plugin already installed' not in wordpress_redis_plugin.stdout"
   failed_when:
-    - redis_plugin.rc != 0
-    - "'already installed' not in redis_plugin.stdout"
+    - wordpress_redis_plugin.rc != 0
+    - "'already installed' not in wordpress_redis_plugin.stdout"
+  become: true
   become_user: www-data
   when: enable_redis | bool
 
 - name: Abilita l'object cache Redis (drop-in)
-  ansible.builtin.command: "{{ wp_cli_path }} redis enable --path={{ wp_root }}"
-  register: redis_enable
-  changed_when: "'already enabled' not in redis_enable.stdout"
+  ansible.builtin.command: "{{ wordpress_cli_path }} redis enable --path={{ wp_root }}"
+  register: wordpress_redis_enable
+  changed_when: "'already enabled' not in wordpress_redis_enable.stdout"
   failed_when:
-    - redis_enable.rc != 0
-    - "'already enabled' not in redis_enable.stdout"
+    - wordpress_redis_enable.rc != 0
+    - "'already enabled' not in wordpress_redis_enable.stdout"
+  become: true
   become_user: www-data
   when: enable_redis | bool
 

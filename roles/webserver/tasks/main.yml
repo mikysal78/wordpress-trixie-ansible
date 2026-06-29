@@ -1,7 +1,7 @@
 ---
 - name: Installa Nginx
   ansible.builtin.apt:
-    name: "{{ nginx_packages }}"
+    name: "{{ webserver_nginx_packages }}"
     state: present
 
 - name: Crea la document root del sito
@@ -27,7 +27,7 @@
     dest: /etc/nginx/conf.d/fastcgi_cache.conf
     mode: "0644"
   when: enable_fastcgi_cache | bool
-  notify: reload nginx
+  notify: Reload nginx
 
 - name: Rimuovi il default vhost
   ansible.builtin.file:
@@ -36,21 +36,21 @@
   loop:
     - /etc/nginx/sites-enabled/default
     - /etc/nginx/sites-available/default
-  notify: reload nginx
+  notify: Reload nginx
 
 - name: Configura il vhost WordPress
   ansible.builtin.template:
     src: wordpress.conf.j2
     dest: "/etc/nginx/sites-available/{{ wp_domain }}.conf"
     mode: "0644"
-  notify: reload nginx
+  notify: Reload nginx
 
 - name: Abilita il vhost WordPress
   ansible.builtin.file:
     src: "/etc/nginx/sites-available/{{ wp_domain }}.conf"
     dest: "/etc/nginx/sites-enabled/{{ wp_domain }}.conf"
     state: link
-  notify: reload nginx
+  notify: Reload nginx
 
 - name: Hardening globale Nginx (nascondi versione)
   ansible.builtin.copy:
@@ -61,7 +61,7 @@
       add_header X-Content-Type-Options "nosniff" always;
       add_header X-Frame-Options "SAMEORIGIN" always;
       add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-  notify: reload nginx
+  notify: Reload nginx
 
 - name: Verifica la configurazione Nginx
   ansible.builtin.command: nginx -t

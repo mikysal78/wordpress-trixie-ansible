@@ -15,14 +15,14 @@
     path: /etc/redis/redis.conf
     line: "include /etc/redis/redis.conf.d/wordpress.conf"
     state: present
-  notify: restart redis
+  notify: Restart redis
 
 - name: Configura limiti memoria Redis (object cache)
   ansible.builtin.template:
     src: wordpress.conf.j2
     dest: /etc/redis/redis.conf.d/wordpress.conf
     mode: "0644"
-  notify: restart redis
+  notify: Restart redis
 
 - name: Abilita e avvia Redis
   ansible.builtin.service:

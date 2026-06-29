@@ -64,7 +64,7 @@
     insertbefore: '^\}'
     block: |
       {{ lookup('template', 'pma_location.conf.j2') | indent(4, false) }}
-  notify: reload nginx
+  notify: Reload nginx
 
 - name: Verifica Nginx
   ansible.builtin.command: nginx -t

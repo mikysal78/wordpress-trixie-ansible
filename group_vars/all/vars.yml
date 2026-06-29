@@ -10,6 +10,7 @@ wp_site_title: "Il mio sito"
 wp_admin_user: "admin"              # utente amministratore WordPress
 wp_admin_email: "[email protected]"
 wp_locale: "it_IT"
+wp_root: "/var/www/{{ wp_domain }}"
 
 # Forza il www o il non-www (scegli: "none" | "www" | "non-www")
 wp_canonical: "non-www"

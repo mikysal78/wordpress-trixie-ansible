@@ -1,4 +1,4 @@
 ---
 # Memoria massima dedicata a Redis (~12% della RAM del CT, min 64MB)
-redis_maxmemory_mb: "{{ [ (ct_memory_mb | int * 0.12) | round | int, 64 ] | max }}"
+redis_maxmemory_mb: "{{ [(ct_memory_mb | int * 0.12) | round | int, 64] | max }}"
 redis_maxmemory_policy: "allkeys-lru"

@@ -1,5 +1,5 @@
 ---
-certbot_packages:
+letsencrypt_certbot_packages:
   - certbot
   - python3-certbot-nginx
 

@@ -82,10 +82,14 @@
       tags: [backup]
 
   post_tasks:
+    - name: Calcola l'URL del sito per il riepilogo
+      ansible.builtin.set_fact:
+        site_url: "http{{ 's' if enable_https else '' }}://{{ wp_domain }}"
+
     - name: Riepilogo accessi
       ansible.builtin.debug:
         msg:
-          - "Sito:        http{{ 's' if enable_https else '' }}://{{ wp_domain }}"
-          - "Admin WP:    http{{ 's' if enable_https else '' }}://{{ wp_domain }}/wp-admin/  (utente: {{ wp_admin_user }})"
-          - "phpMyAdmin:  {{ ('http' ~ ('s' if enable_https else '') ~ '://' ~ wp_domain ~ '/' ~ phpmyadmin_alias ~ '/') if enable_phpmyadmin else 'disabilitato' }}"
+          - "Sito:        {{ site_url }}"
+          - "Admin WP:    {{ site_url }}/wp-admin/  (utente: {{ wp_admin_user }})"
+          - "phpMyAdmin:  {{ (site_url ~ '/' ~ phpmyadmin_alias ~ '/') if enable_phpmyadmin else 'disabilitato' }}"
           - "Backup dir:  {{ backup_dir }}  (retention {{ backup_retention_days }} giorni)"
