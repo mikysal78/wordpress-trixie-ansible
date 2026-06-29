@@ -1,0 +1,4 @@
+---
+phpmyadmin_install_dir: "/usr/share/phpmyadmin"
+phpmyadmin_tmp_dir: "/var/lib/phpmyadmin/tmp"
+phpmyadmin_download_url: "https://files.phpmyadmin.net/phpMyAdmin/{{ phpmyadmin_version }}/phpMyAdmin-{{ phpmyadmin_version }}-all-languages.tar.gz"

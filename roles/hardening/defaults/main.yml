@@ -1,0 +1,7 @@
+---
+hardening_packages:
+  - ufw
+  - fail2ban
+  - unattended-upgrades
+  - apt-listchanges
+  - libpam-tmpdir

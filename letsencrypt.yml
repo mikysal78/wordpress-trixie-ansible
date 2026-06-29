@@ -1,0 +1,44 @@
+---
+# =====================================================================
+#  Emissione / rinnovo certificato Let's Encrypt (standalone)
+# =====================================================================
+#  Da usare DOPO che:
+#    - site.yml ha installato Nginx + il vhost HTTP del dominio
+#    - il DNS del dominio punta all'IP pubblico di questo host
+#    - la porta 80 è raggiungibile da Internet
+#
+#  Esempi:
+#    # Prova senza rate-limit (certificato di test, non valido nei browser)
+#    ansible-playbook letsencrypt.yml --ask-vault-pass -e letsencrypt_staging=true
+#
+#    # Emissione reale
+#    ansible-playbook letsencrypt.yml --ask-vault-pass
+#
+#    # Passare da staging a produzione (forza la ri-emissione)
+#    ansible-playbook letsencrypt.yml --ask-vault-pass -e letsencrypt_force=true
+#
+#    # Includere anche il dry-run di rinnovo come verifica
+#    ansible-playbook letsencrypt.yml --ask-vault-pass --tags all,verify
+# =====================================================================
+
+- name: HTTPS con Let's Encrypt
+  hosts: wordpress
+  become: true
+
+  pre_tasks:
+    - name: Verifica Debian Trixie
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Debian"
+          - ansible_distribution_major_version is version('13', '>=')
+        fail_msg: "Pensato per Debian 13 (Trixie). Rilevato: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+        quiet: true
+
+  roles:
+    - role: letsencrypt
+      tags: [letsencrypt, https, tls]
+
+  post_tasks:
+    - name: Esito
+      ansible.builtin.debug:
+        msg: "Sito raggiungibile su https://{{ wp_domain }}/ (redirect da HTTP attivo)."

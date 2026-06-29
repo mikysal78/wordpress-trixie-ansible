@@ -1,0 +1,73 @@
+---
+- name: Installa MariaDB
+  ansible.builtin.apt:
+    name: "{{ mariadb_packages }}"
+    state: present
+
+- name: Abilita e avvia MariaDB
+  ansible.builtin.service:
+    name: mariadb
+    enabled: true
+    state: started
+
+- name: Tuning MariaDB (bind locale + InnoDB)
+  ansible.builtin.template:
+    src: 60-wordpress.cnf.j2
+    dest: /etc/mysql/mariadb.conf.d/60-wordpress.cnf
+    mode: "0644"
+  notify: restart mariadb
+
+- name: Applica subito la configurazione MariaDB
+  ansible.builtin.meta: flush_handlers
+
+# ---- Imposta la password di root (idempotente, da auth socket a password) ----
+- name: Imposta la password di root MariaDB
+  community.mysql.mysql_user:
+    name: root
+    host: localhost
+    password: "{{ mysql_root_password }}"
+    login_unix_socket: /run/mysqld/mysqld.sock
+    check_implicit_admin: true
+    state: present
+
+- name: Scrivi /root/.my.cnf per accesso root non interattivo
+  ansible.builtin.copy:
+    dest: /root/.my.cnf
+    mode: "0600"
+    content: |
+      [client]
+      user=root
+      password={{ mysql_root_password }}
+  no_log: true
+
+- name: Rimuovi utenti anonimi
+  community.mysql.mysql_user:
+    name: ""
+    host_all: true
+    state: absent
+    login_unix_socket: /run/mysqld/mysqld.sock
+
+- name: Rimuovi il database 'test'
+  community.mysql.mysql_db:
+    name: test
+    state: absent
+    login_unix_socket: /run/mysqld/mysqld.sock
+
+# ---- Database e utente WordPress ----
+- name: Crea il database WordPress
+  community.mysql.mysql_db:
+    name: "{{ db_name }}"
+    encoding: utf8mb4
+    collation: utf8mb4_unicode_ci
+    state: present
+    login_unix_socket: /run/mysqld/mysqld.sock
+
+- name: Crea l'utente del database WordPress
+  community.mysql.mysql_user:
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+    host: "{{ db_host }}"
+    priv: "{{ db_name }}.*:ALL"
+    state: present
+    login_unix_socket: /run/mysqld/mysqld.sock
+  no_log: true

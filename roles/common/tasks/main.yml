@@ -1,0 +1,47 @@
+---
+- name: Applica il ruolo base Ninux (mikysal78.ninux_common)
+  block:
+    - name: Include mikysal78.ninux_common
+      ansible.builtin.include_role:
+        name: mikysal78.ninux_common
+  rescue:
+    - name: Ruolo ninux_common non disponibile - proseguo
+      ansible.builtin.debug:
+        msg: "mikysal78.ninux_common non installato o fallito; continuo con i pacchetti base."
+  tags: [ninux_common]
+
+- name: Aggiorna la cache APT (valida 1h)
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Aggiornamento pacchetti di sistema (clean install)
+  ansible.builtin.apt:
+    upgrade: dist
+  register: apt_upgrade
+  retries: 2
+  delay: 5
+  until: apt_upgrade is succeeded
+
+- name: Installa i pacchetti comuni
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present
+
+- name: Imposta il fuso orario
+  community.general.timezone:
+    name: "{{ common_timezone }}"
+
+- name: Genera e imposta il locale it_IT.UTF-8
+  community.general.locale_gen:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - "en_US.UTF-8"
+    - "it_IT.UTF-8"
+
+- name: Imposta hostname dal dominio
+  ansible.builtin.hostname:
+    name: "{{ wp_domain.split('.')[0] }}"
+  when: ansible_virtualization_type | default('') != 'lxc' or ansible_virtualization_role | default('') == 'host'
+  failed_when: false

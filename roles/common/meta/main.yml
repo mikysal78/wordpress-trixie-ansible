@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: common
+  author: mikysal78
+  description: WordPress su Debian Trixie - ruolo common
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Debian
+      versions:
+        - trixie
+dependencies: []

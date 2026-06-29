@@ -1,0 +1,74 @@
+---
+- name: Installa certbot e il plugin nginx
+  ansible.builtin.apt:
+    name: "{{ certbot_packages }}"
+    state: present
+
+- name: Raccogli lo stato dei servizi
+  ansible.builtin.service_facts:
+
+- name: Assert - Nginx presente e avviato
+  ansible.builtin.assert:
+    that:
+      - "'nginx.service' in ansible_facts.services"
+      - ansible_facts.services['nginx.service'].state == 'running'
+    fail_msg: >-
+      Nginx non risulta in esecuzione. Esegui prima il ruolo 'webserver'
+      (o site.yml) così il vhost HTTP del dominio è servito sulla porta 80,
+      poi rilancia questo playbook.
+    quiet: true
+
+- name: Avviso - dominio e raggiungibilità
+  ansible.builtin.debug:
+    msg: >-
+      Sto per richiedere un certificato per: {{ letsencrypt_domains | join(', ') }}.
+      Assicurati che questi nomi risolvano all'IP pubblico di questo host e che
+      la porta 80 sia raggiungibile da Internet.{{ ' [STAGING]' if letsencrypt_staging | bool else '' }}
+
+- name: Crea la directory degli hook di deploy (reload al rinnovo)
+  ansible.builtin.file:
+    path: /etc/letsencrypt/renewal-hooks/deploy
+    state: directory
+    mode: "0755"
+
+- name: Installa l'hook che ricarica Nginx dopo ogni rinnovo
+  ansible.builtin.copy:
+    dest: /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+    mode: "0755"
+    content: |
+      #!/usr/bin/env bash
+      # Gestito da Ansible (ruolo letsencrypt)
+      # Ricarica Nginx solo se la sua configurazione e' valida.
+      /usr/sbin/nginx -t && /bin/systemctl reload nginx
+
+- name: Verifica se il certificato esiste gia'
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ wp_domain }}/fullchain.pem"
+  register: le_cert
+
+- name: Emetti/installa il certificato con certbot (plugin nginx)
+  ansible.builtin.command:
+    cmd: >-
+      certbot --nginx --non-interactive --agree-tos
+      -m {{ letsencrypt_email }}
+      {% for d in letsencrypt_domains %}-d {{ d }} {% endfor %}
+      --redirect --keep-until-expiring
+      {{ '--staging' if letsencrypt_staging | bool else '' }}
+      {{ '--force-renewal' if letsencrypt_force | bool else '' }}
+  register: certbot_run
+  when: (not le_cert.stat.exists) or (letsencrypt_force | bool)
+  changed_when: "'Congratulations' in certbot_run.stdout or 'Successfully' in certbot_run.stdout"
+  notify: reload nginx
+
+- name: Assicura il timer di rinnovo automatico di certbot
+  ansible.builtin.systemd_service:
+    name: certbot.timer
+    enabled: true
+    state: started
+  failed_when: false
+
+- name: Test a vuoto del rinnovo (dry-run) - solo con tag 'verify'
+  ansible.builtin.command: certbot renew --dry-run
+  changed_when: false
+  when: le_cert.stat.exists or (certbot_run is defined and certbot_run is changed)
+  tags: [never, verify]

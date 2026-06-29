@@ -1,0 +1,31 @@
+---
+- name: Installa redis-server
+  ansible.builtin.apt:
+    name: redis-server
+    state: present
+
+- name: Assicura la directory conf.d di Redis
+  ansible.builtin.file:
+    path: /etc/redis/redis.conf.d
+    state: directory
+    mode: "0755"
+
+- name: Includi il drop-in nella conf principale di Redis
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    line: "include /etc/redis/redis.conf.d/wordpress.conf"
+    state: present
+  notify: restart redis
+
+- name: Configura limiti memoria Redis (object cache)
+  ansible.builtin.template:
+    src: wordpress.conf.j2
+    dest: /etc/redis/redis.conf.d/wordpress.conf
+    mode: "0644"
+  notify: restart redis
+
+- name: Abilita e avvia Redis
+  ansible.builtin.service:
+    name: redis-server
+    enabled: true
+    state: started

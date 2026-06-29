@@ -1,0 +1,71 @@
+---
+- name: Pacchetti necessari (apache2-utils per htpasswd)
+  ansible.builtin.apt:
+    name:
+      - apache2-utils
+    state: present
+  when: phpmyadmin_basic_auth | bool
+
+- name: Scarica phpMyAdmin {{ phpmyadmin_version }}
+  ansible.builtin.get_url:
+    url: "{{ phpmyadmin_download_url }}"
+    dest: "/tmp/phpmyadmin-{{ phpmyadmin_version }}.tar.gz"
+    mode: "0644"
+
+- name: Crea la directory di installazione
+  ansible.builtin.file:
+    path: "{{ phpmyadmin_install_dir }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Estrai phpMyAdmin
+  ansible.builtin.unarchive:
+    src: "/tmp/phpmyadmin-{{ phpmyadmin_version }}.tar.gz"
+    dest: "{{ phpmyadmin_install_dir }}"
+    remote_src: true
+    extra_opts: [--strip-components=1]
+    owner: www-data
+    group: www-data
+    creates: "{{ phpmyadmin_install_dir }}/index.php"
+
+- name: Crea la tmp dir di phpMyAdmin
+  ansible.builtin.file:
+    path: "{{ phpmyadmin_tmp_dir }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0700"
+
+- name: Genera config.inc.php (con blowfish secret)
+  ansible.builtin.template:
+    src: config.inc.php.j2
+    dest: "{{ phpmyadmin_install_dir }}/config.inc.php"
+    owner: www-data
+    group: www-data
+    mode: "0640"
+
+- name: Crea il file Basic Auth davanti a phpMyAdmin
+  community.general.htpasswd:
+    path: /etc/nginx/.htpasswd-pma
+    name: "{{ phpmyadmin_basic_user }}"
+    password: "{{ phpmyadmin_basic_password }}"
+    owner: root
+    group: www-data
+    mode: "0640"
+  when: phpmyadmin_basic_auth | bool
+  no_log: true
+
+- name: Inserisci il blocco location di phpMyAdmin nel vhost
+  ansible.builtin.blockinfile:
+    path: "/etc/nginx/sites-available/{{ wp_domain }}.conf"
+    marker: "    # {mark} PHPMYADMIN"
+    insertbefore: '^\}'
+    block: |
+      {{ lookup('template', 'pma_location.conf.j2') | indent(4, false) }}
+  notify: reload nginx
+
+- name: Verifica Nginx
+  ansible.builtin.command: nginx -t
+  changed_when: false

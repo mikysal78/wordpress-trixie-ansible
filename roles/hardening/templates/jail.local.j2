@@ -1,0 +1,17 @@
+# {{ ansible_managed }}
+[DEFAULT]
+bantime  = 1h
+findtime = 10m
+maxretry = 5
+backend  = systemd
+destemail = {{ wp_admin_email }}
+
+[sshd]
+enabled = true
+port    = {{ hardening_ssh_port }}
+
+[nginx-http-auth]
+enabled = true
+
+[nginx-botsearch]
+enabled = true

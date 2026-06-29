@@ -1,0 +1,10 @@
+# Segreti / vault
+group_vars/all/vault.yml
+.vault_pass
+*.retry
+
+# Artefatti locali
+collections/
+roles/mikysal78.ninux_common/
+*.log
+.DS_Store

@@ -1,0 +1,88 @@
+---
+# =====================================================================
+#  CONFIGURAZIONE PRINCIPALE  -  group_vars/all/vars.yml
+#  (valori NON segreti. Le password stanno in vault.yml)
+# =====================================================================
+
+# ---------- Sito / dominio ----------
+wp_domain: "example.com"            # dominio del sito (senza https://)
+wp_site_title: "Il mio sito"
+wp_admin_user: "admin"              # utente amministratore WordPress
+wp_admin_email: "[email protected]"
+wp_locale: "it_IT"
+
+# Forza il www o il non-www (scegli: "none" | "www" | "non-www")
+wp_canonical: "non-www"
+
+# ---------- Database ----------
+db_name: "wordpress"
+db_user: "wp_user"                  # utente MySQL/MariaDB del sito
+db_host: "localhost"
+db_table_prefix: "wp_"
+
+# ---------- Versioni / runtime ----------
+php_version: "8.4"                  # default di Debian Trixie
+
+# ---------- HTTPS (Let's Encrypt) ----------
+# Metti a true SOLO se il dominio punta già a questo CT (porta 80 raggiungibile da Internet).
+enable_https: false
+letsencrypt_email: "{{ wp_admin_email }}"
+# Ambiente di test (certificati non validi nei browser, ma senza rate-limit).
+letsencrypt_staging: false
+# Forza la ri-emissione (es. per passare da staging a produzione).
+letsencrypt_force: false
+# Domini aggiuntivi (SAN) oltre ad apex e www.
+letsencrypt_extra_domains: []
+
+# ---------- Redis object cache ----------
+enable_redis: true
+
+# ---------- phpMyAdmin ----------
+enable_phpmyadmin: true
+# Path "segreto" sotto cui esporre phpMyAdmin (evita /phpmyadmin di default)
+phpmyadmin_alias: "dbadmin-7h3x"
+phpmyadmin_version: "5.2.2"
+# Accesso protetto da Basic Auth davanti a phpMyAdmin (consigliato)
+phpmyadmin_basic_auth: true
+phpmyadmin_basic_user: "pmaops"
+
+# ---------- Tuning performance ----------
+# RAM del CT in MB: serve a dimensionare PHP-FPM, OPcache e MariaDB.
+ct_memory_mb: 2048
+# Limiti PHP per upload media WordPress
+php_upload_max_filesize: "64M"
+php_post_max_size: "64M"
+php_memory_limit: "256M"
+php_max_execution_time: 120
+
+# Micro-cache FastCGI di Nginx (ottimo per traffico anonimo)
+enable_fastcgi_cache: true
+fastcgi_cache_valid: "60m"
+
+# ---------- Hardening / SSH ----------
+hardening_ssh_port: 22              # cambia (es. 2222) per ridurre rumore brute-force
+# Utente sudo non-root creato per l'amministrazione (consigliato).
+admin_user: "sysop"
+# Chiave pubblica SSH dell'amministratore. Se valorizzata, abilita login a chiave
+# e DISABILITA password+root login. Lasciala vuota per non bloccarti fuori.
+admin_ssh_pubkey: ""
+# Disabilita login SSH con password (richiede admin_ssh_pubkey impostata!)
+ssh_disable_password_auth: false
+# Disabilita login diretto di root via SSH (richiede admin_user funzionante!)
+ssh_disable_root_login: false
+
+# Firewall: porte TCP in ingresso sempre permesse (oltre a SSH/HTTP/HTTPS)
+firewall_extra_tcp_ports: []
+
+# ---------- Backup ----------
+backup_dir: "/var/backups/wordpress"
+backup_retention_days: 7
+backup_cron_hour: "3"
+backup_cron_minute: "30"
+
+# ---------- Mapping segreti (NON modificare: i valori reali stanno in vault.yml) ----------
+mysql_root_password: "{{ vault_mysql_root_password | default('') }}"
+db_password: "{{ vault_db_password | default('') }}"
+wp_admin_password: "{{ vault_wp_admin_password | default('') }}"
+phpmyadmin_basic_password: "{{ vault_phpmyadmin_basic_password | default('') }}"
+admin_user_password: "{{ vault_admin_user_password | default('') }}"

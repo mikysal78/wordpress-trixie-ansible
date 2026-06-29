@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: letsencrypt
+  author: mikysal78
+  description: Emissione e rinnovo certificati Let's Encrypt (certbot + nginx) su Debian Trixie
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Debian
+      versions:
+        - trixie
+dependencies: []

@@ -1,0 +1,82 @@
+---
+- name: Installa Nginx
+  ansible.builtin.apt:
+    name: "{{ nginx_packages }}"
+    state: present
+
+- name: Crea la document root del sito
+  ansible.builtin.file:
+    path: "{{ wp_root }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Crea le directory per la FastCGI cache
+  ansible.builtin.file:
+    path: /var/cache/nginx/fastcgi
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+  when: enable_fastcgi_cache | bool
+
+- name: Snippet globale FastCGI cache
+  ansible.builtin.template:
+    src: fastcgi_cache.conf.j2
+    dest: /etc/nginx/conf.d/fastcgi_cache.conf
+    mode: "0644"
+  when: enable_fastcgi_cache | bool
+  notify: reload nginx
+
+- name: Rimuovi il default vhost
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/nginx/sites-enabled/default
+    - /etc/nginx/sites-available/default
+  notify: reload nginx
+
+- name: Configura il vhost WordPress
+  ansible.builtin.template:
+    src: wordpress.conf.j2
+    dest: "/etc/nginx/sites-available/{{ wp_domain }}.conf"
+    mode: "0644"
+  notify: reload nginx
+
+- name: Abilita il vhost WordPress
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ wp_domain }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ wp_domain }}.conf"
+    state: link
+  notify: reload nginx
+
+- name: Hardening globale Nginx (nascondi versione)
+  ansible.builtin.copy:
+    dest: /etc/nginx/conf.d/security.conf
+    mode: "0644"
+    content: |
+      server_tokens off;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  notify: reload nginx
+
+- name: Verifica la configurazione Nginx
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Abilita e avvia Nginx
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started
+
+# ---------- HTTPS Let's Encrypt (opzionale) ----------
+# La logica certbot vive nel ruolo dedicato 'letsencrypt' (riusabile anche
+# tramite il playbook standalone letsencrypt.yml).
+- name: Emetti il certificato Let's Encrypt
+  ansible.builtin.include_role:
+    name: letsencrypt
+  when: enable_https | bool

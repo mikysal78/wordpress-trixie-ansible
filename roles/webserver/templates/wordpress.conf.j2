@@ -1,0 +1,58 @@
+# {{ ansible_managed }}
+{% if enable_fastcgi_cache | bool %}
+# Bypass cache per utenti loggati / POST / area admin
+map $request_method $wp_skip_method { default 0; POST 1; }
+{% endif %}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name {{ wp_domain }}{{ ' www.' ~ wp_domain if wp_canonical != 'non-www' else '' }};
+
+    root {{ wp_root }};
+    index index.php;
+
+    client_max_body_size {{ nginx_client_max_body_size }};
+    access_log /var/log/nginx/{{ wp_domain }}.access.log;
+    error_log  /var/log/nginx/{{ wp_domain }}.error.log;
+
+{% if enable_fastcgi_cache | bool %}
+    set $skip_cache 0;
+    if ($wp_skip_method = 1) { set $skip_cache 1; }
+    if ($query_string != "") { set $skip_cache 1; }
+    if ($request_uri ~* "/wp-admin/|/xmlrpc.php|wp-.*.php|/feed/|index.php|sitemap(_index)?.xml") { set $skip_cache 1; }
+    if ($http_cookie ~* "comment_author|wordpress_logged_in|wp-postpass|woocommerce_items_in_cart") { set $skip_cache 1; }
+{% endif %}
+
+    # Sicurezza: blocca file sensibili
+    location = /xmlrpc.php { deny all; access_log off; log_not_found off; }
+    location ~* /(?:wp-config\.php|readme\.html|license\.txt) { deny all; }
+    location ~ /\.(?!well-known) { deny all; access_log off; log_not_found off; }
+    location ~* ^/wp-content/uploads/.*\.(?:php|phtml|php\d)$ { deny all; }
+
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php{{ php_version }}-fpm.sock;
+{% if enable_fastcgi_cache | bool %}
+        fastcgi_cache WORDPRESS;
+        fastcgi_cache_valid 200 301 302 {{ fastcgi_cache_valid }};
+        fastcgi_cache_bypass $skip_cache;
+        fastcgi_no_cache $skip_cache;
+        add_header X-FastCGI-Cache $upstream_cache_status;
+{% endif %}
+    }
+
+    # Static assets con cache lunga
+    location ~* \.(?:css|js|jpg|jpeg|gif|png|webp|svg|ico|woff2?|ttf|otf|mp4|pdf)$ {
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+        access_log off;
+    }
+
+    location = /favicon.ico { log_not_found off; access_log off; }
+    location = /robots.txt  { log_not_found off; access_log off; }
+}

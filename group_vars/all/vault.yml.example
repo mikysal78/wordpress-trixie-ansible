@@ -1,0 +1,27 @@
+---
+# =====================================================================
+#  SEGRETI  -  group_vars/all/vault.yml
+# =====================================================================
+#  1) Copia questo file:   cp group_vars/all/vault.yml.example group_vars/all/vault.yml
+#  2) Inserisci password forti qui sotto
+#  3) Cifra il file:       ansible-vault encrypt group_vars/all/vault.yml
+#  4) Esegui il playbook con:  --ask-vault-pass
+#
+#  Genera password robuste con:   openssl rand -base64 24
+# =====================================================================
+
+# Password root di MariaDB ("la password di mysql")
+vault_mysql_root_password: "CAMBIAMI_root_mysql"
+
+# Password dell'utente database del sito WordPress
+vault_db_password: "CAMBIAMI_db_user"
+
+# Password dell'amministratore WordPress
+vault_wp_admin_password: "CAMBIAMI_wp_admin"
+
+# Password Basic Auth davanti a phpMyAdmin
+vault_phpmyadmin_basic_password: "CAMBIAMI_pma_basic"
+
+# (Opzionale) password dell'utente sudo admin_user del sistema.
+# Se vuota, l'utente sarà creato senza password (solo accesso a chiave SSH).
+vault_admin_user_password: ""

@@ -1,0 +1,8 @@
+---
+mariadb_packages:
+  - mariadb-server
+  - mariadb-client
+  - python3-pymysql        # richiesto dai moduli community.mysql
+mariadb_bind_address: "127.0.0.1"
+# Tuning: ~25% della RAM del CT per il buffer pool InnoDB
+mariadb_innodb_buffer_pool_mb: "{{ (ct_memory_mb | int * 0.25) | round | int }}"

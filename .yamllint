@@ -1,0 +1,18 @@
+---
+extends: default
+
+rules:
+  line-length:
+    max: 160
+    level: warning
+  comments:
+    min-spaces-from-content: 1
+  truthy:
+    allowed-values: ["true", "false"]
+    check-keys: false
+  braces:
+    max-spaces-inside: 1
+
+ignore: |
+  collections/
+  roles/mikysal78.ninux_common/

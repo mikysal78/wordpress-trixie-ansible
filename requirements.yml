@@ -1,0 +1,17 @@
+---
+# Installa con:  ansible-galaxy install -r requirements.yml
+#
+# Ruoli esterni (Ansible Galaxy)
+roles:
+  # Ruolo base richiesto esplicitamente.
+  # Equivale a:  ansible-galaxy role install mikysal78.ninux_common
+  - name: mikysal78.ninux_common
+
+# Collections necessarie ai moduli usati dai ruoli (MariaDB, firewall, ecc.)
+collections:
+  - name: community.general
+    version: ">=8.0.0"
+  - name: community.mysql
+    version: ">=3.9.0,<6.0.0"
+  - name: ansible.posix
+    version: ">=1.5.0"

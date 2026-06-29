@@ -1,0 +1,5 @@
+---
+nginx_packages:
+  - nginx
+wp_root: "/var/www/{{ wp_domain }}"
+nginx_client_max_body_size: "{{ php_upload_max_filesize }}"

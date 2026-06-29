@@ -1,0 +1,12 @@
+---
+galaxy_info:
+  role_name: hardening
+  author: mikysal78
+  description: WordPress su Debian Trixie - ruolo hardening
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Debian
+      versions:
+        - trixie
+dependencies: []

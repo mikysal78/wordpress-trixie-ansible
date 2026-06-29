@@ -1,0 +1,5 @@
+---
+profile: moderate
+exclude_paths:
+  - collections/
+  - roles/mikysal78.ninux_common/

@@ -1,0 +1,10 @@
+# {{ ansible_managed }}
+[mysqld]
+bind-address           = {{ mariadb_bind_address }}
+innodb_buffer_pool_size = {{ mariadb_innodb_buffer_pool_mb }}M
+innodb_flush_log_at_trx_commit = 2
+innodb_file_per_table  = 1
+max_connections        = 100
+character-set-server   = utf8mb4
+collation-server       = utf8mb4_unicode_ci
+skip-name-resolve      = 1

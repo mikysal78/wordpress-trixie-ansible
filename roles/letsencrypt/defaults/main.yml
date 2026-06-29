@@ -1,0 +1,19 @@
+---
+certbot_packages:
+  - certbot
+  - python3-certbot-nginx
+
+# Email per le notifiche di scadenza (default: quella dell'admin WordPress)
+letsencrypt_email: "{{ wp_admin_email }}"
+
+# Domini da includere nel certificato.
+# Apex sempre; aggiunge www.<dominio> se wp_canonical != 'non-www'.
+letsencrypt_extra_domains: []
+letsencrypt_domains: "{{ ([wp_domain] + (['www.' ~ wp_domain] if wp_canonical | default('non-www') != 'non-www' else []) + letsencrypt_extra_domains) }}"
+
+# Ambiente di test Let's Encrypt (NON valido per i browser, ma senza rate-limit).
+letsencrypt_staging: false
+
+# Forza la ri-emissione anche se il certificato esiste già
+# (serve per passare da staging a produzione).
+letsencrypt_force: false

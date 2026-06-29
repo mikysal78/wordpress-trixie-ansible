@@ -1,0 +1,18 @@
+---
+php_extensions:
+  - "php{{ php_version }}-fpm"
+  - "php{{ php_version }}-mysql"
+  - "php{{ php_version }}-curl"
+  - "php{{ php_version }}-gd"
+  - "php{{ php_version }}-mbstring"
+  - "php{{ php_version }}-xml"
+  - "php{{ php_version }}-zip"
+  - "php{{ php_version }}-intl"
+  - "php{{ php_version }}-bcmath"
+  - "php{{ php_version }}-imagick"
+  - "php{{ php_version }}-opcache"
+
+php_fpm_pool: "www"
+# Dimensionamento dinamico del pool in base alla RAM (≈ 50MB per child)
+php_fpm_max_children: "{{ [ (ct_memory_mb | int // 50), 5 ] | max }}"
+php_opcache_memory_mb: 128

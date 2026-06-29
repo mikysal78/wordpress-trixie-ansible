@@ -1,0 +1,3 @@
+---
+backup_script_path: /usr/local/sbin/wp-backup.sh
+wp_root: "/var/www/{{ wp_domain }}"

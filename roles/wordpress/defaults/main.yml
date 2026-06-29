@@ -1,0 +1,4 @@
+---
+wp_cli_path: /usr/local/bin/wp
+wp_root: "/var/www/{{ wp_domain }}"
+wp_url: "http{{ 's' if enable_https else '' }}://{{ wp_domain }}"

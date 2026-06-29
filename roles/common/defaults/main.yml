@@ -1,0 +1,16 @@
+---
+common_packages:
+  - sudo
+  - curl
+  - wget
+  - ca-certificates
+  - gnupg
+  - git
+  - vim
+  - htop
+  - tmux
+  - unzip
+  - rsync
+  - python3-pip
+  - acl            # necessario a Ansible per become non-root su file temporanei
+common_timezone: "Europe/Rome"

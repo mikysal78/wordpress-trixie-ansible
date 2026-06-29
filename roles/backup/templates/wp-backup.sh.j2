@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+# Backup WordPress: database (mysqldump) + file (wp-content, wp-config, .htaccess)
+# Retention: {{ backup_retention_days }} giorni
+set -Eeuo pipefail
+
+DOMAIN="{{ wp_domain }}"
+WP_ROOT="{{ wp_root }}"
+DB_NAME="{{ db_name }}"
+BACKUP_DIR="{{ backup_dir }}"
+RETENTION_DAYS={{ backup_retention_days }}
+TS="$(date +%Y%m%d-%H%M%S)"
+DEST="${BACKUP_DIR}/${DOMAIN}-${TS}"
+LOG_PREFIX="[$(date '+%F %T')]"
+
+log() { echo "${LOG_PREFIX} $*"; }
+fail() { echo "${LOG_PREFIX} ERRORE: $*" >&2; exit 1; }
+
+mkdir -p "${DEST}"
+log "Avvio backup di ${DOMAIN}"
+
+# 1) Dump del database (transazione singola, coerente)
+log "Dump database ${DB_NAME}..."
+mysqldump --defaults-extra-file=/root/.wp-backup.cnf \
+  --single-transaction --quick --routines --triggers --events \
+  "${DB_NAME}" | gzip > "${DEST}/db.sql.gz" || fail "mysqldump fallito"
+
+# 2) Archivio dei file (escludo cache e backup locali)
+log "Archivio file..."
+tar -czf "${DEST}/files.tar.gz" \
+  --exclude='wp-content/cache' \
+  -C "$(dirname "${WP_ROOT}")" "$(basename "${WP_ROOT}")" || fail "tar fallito"
+
+# 3) Checksum per verifica integrità
+( cd "${DEST}" && sha256sum db.sql.gz files.tar.gz > SHA256SUMS )
+
+# 4) Pacchetto unico
+ARCHIVE="${BACKUP_DIR}/${DOMAIN}-${TS}.tar"
+tar -cf "${ARCHIVE}" -C "${BACKUP_DIR}" "${DOMAIN}-${TS}"
+rm -rf "${DEST}"
+SIZE="$(du -h "${ARCHIVE}" | cut -f1)"
+log "Backup completato: ${ARCHIVE} (${SIZE})"
+
+# 5) Retention: elimina i backup più vecchi di N giorni
+log "Pulizia backup più vecchi di ${RETENTION_DAYS} giorni..."
+find "${BACKUP_DIR}" -maxdepth 1 -name "${DOMAIN}-*.tar" -type f -mtime +${RETENTION_DAYS} -print -delete
+
+log "Fine."

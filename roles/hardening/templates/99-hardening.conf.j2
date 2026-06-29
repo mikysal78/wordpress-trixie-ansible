@@ -1,0 +1,26 @@
+# {{ ansible_managed }}
+# Drop-in SSH hardening (Debian Trixie usa sshd_config.d/)
+Port {{ hardening_ssh_port }}
+Protocol 2
+{% if ssh_disable_root_login | bool %}
+PermitRootLogin no
+{% else %}
+PermitRootLogin prohibit-password
+{% endif %}
+{% if ssh_disable_password_auth | bool and admin_ssh_pubkey | length > 0 %}
+PasswordAuthentication no
+{% else %}
+PasswordAuthentication yes
+{% endif %}
+PubkeyAuthentication yes
+PermitEmptyPasswords no
+ChallengeResponseAuthentication no
+KbdInteractiveAuthentication no
+X11Forwarding no
+MaxAuthTries 3
+MaxSessions 4
+LoginGraceTime 30
+ClientAliveInterval 300
+ClientAliveCountMax 2
+AllowAgentForwarding no
+TCPKeepAlive no

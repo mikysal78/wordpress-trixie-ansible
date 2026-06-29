@@ -1,0 +1,91 @@
+---
+# =====================================================================
+#  WordPress mono-sito su Debian 13 (Trixie) - Proxmox LXC
+#  Stack: Nginx + PHP-FPM 8.4 + MariaDB + Redis + WP-CLI
+# =====================================================================
+
+- name: Bootstrap Python (immagini Debian minimal)
+  hosts: wordpress
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Assicura python3 presente (raw, pre-facts)
+      ansible.builtin.raw: >
+        test -e /usr/bin/python3 ||
+        (apt-get update && apt-get install -y --no-install-recommends python3)
+      changed_when: false
+
+    - name: Raccogli i fact ora che python3 esiste
+      ansible.builtin.setup:
+
+- name: Installazione e configurazione WordPress
+  hosts: wordpress
+  become: true
+
+  pre_tasks:
+    - name: Verifica che il sistema sia Debian Trixie (13)
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Debian"
+          - ansible_distribution_major_version is version('13', '>=')
+        fail_msg: "Questo playbook è pensato per Debian 13 (Trixie). Rilevato: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+        success_msg: "Debian {{ ansible_distribution_version }} rilevato. Procedo."
+
+    - name: Avviso credenziali di default ancora presenti
+      ansible.builtin.assert:
+        that:
+          - mysql_root_password not in ['', 'CAMBIAMI_root_mysql']
+          - db_password not in ['', 'CAMBIAMI_db_user']
+          - wp_admin_password not in ['', 'CAMBIAMI_wp_admin']
+        fail_msg: >-
+          Le password nel vault non sono state impostate.
+          Copia vault.yml.example in vault.yml, modifica le password e cifra con ansible-vault.
+        quiet: true
+
+  roles:
+    # 1) Ruolo base Ninux richiesto (mikysal78.ninux_common) + pacchetti comuni
+    - role: common
+      tags: [common, base]
+
+    # 2) Hardening del sistema (firewall, ssh, fail2ban, sysctl, updates)
+    - role: hardening
+      tags: [hardening, security]
+
+    # 3) Database MariaDB
+    - role: database
+      tags: [database, mariadb]
+
+    # 4) PHP-FPM 8.4 + estensioni + tuning OPcache
+    - role: php
+      tags: [php]
+
+    # 5) Redis object cache (se enable_redis)
+    - role: redis
+      when: enable_redis | bool
+      tags: [redis, cache]
+
+    # 6) Nginx + vhost + micro-cache + HTTPS opzionale
+    - role: webserver
+      tags: [nginx, web]
+
+    # 7) WordPress via WP-CLI (download, config, install, plugin redis)
+    - role: wordpress
+      tags: [wordpress, wp]
+
+    # 8) phpMyAdmin protetto (se enable_phpmyadmin)
+    - role: phpmyadmin
+      when: enable_phpmyadmin | bool
+      tags: [phpmyadmin, pma]
+
+    # 9) Directory + script di backup con retention e cron
+    - role: backup
+      tags: [backup]
+
+  post_tasks:
+    - name: Riepilogo accessi
+      ansible.builtin.debug:
+        msg:
+          - "Sito:        http{{ 's' if enable_https else '' }}://{{ wp_domain }}"
+          - "Admin WP:    http{{ 's' if enable_https else '' }}://{{ wp_domain }}/wp-admin/  (utente: {{ wp_admin_user }})"
+          - "phpMyAdmin:  {{ ('http' ~ ('s' if enable_https else '') ~ '://' ~ wp_domain ~ '/' ~ phpmyadmin_alias ~ '/') if enable_phpmyadmin else 'disabilitato' }}"
+          - "Backup dir:  {{ backup_dir }}  (retention {{ backup_retention_days }} giorni)"
