@@ -141,6 +141,11 @@ cd wordpress-trixie-ansible
 ansible-galaxy install -r requirements.yml
 ```
 
+Grazie alla configurazione in `ansible.cfg`, le dipendenze Galaxy vengono installate **dentro il progetto** e **non vengono versionate** (sono già nel `.gitignore`):
+
+- ruoli esterni → `galaxy_roles/` (i tuoi ruoli locali restano in `roles/`)
+- collections → `collections/`
+
 L'installazione di `mikysal78.ninux_common` è inclusa in `requirements.yml`. In alternativa, manualmente:
 
 ```bash
@@ -379,7 +384,7 @@ git remote add origin https://github.com/mikysal78/wordpress-trixie-ansible.git
 git push -u origin main
 ```
 
-> ✅ Il `.gitignore` **esclude già `group_vars/all/vault.yml`**: il file delle password (anche se cifrato) non viene committato per sicurezza. Se vuoi versionare il vault *cifrato*, rimuovi la riga relativa dal `.gitignore` — ma **mai** committare il vault in chiaro.
+> ✅ Il `.gitignore` **esclude già** `group_vars/all/vault.yml` (le password, anche se cifrate, non finiscono nel repo) e le dipendenze Galaxy installate localmente (`galaxy_roles/`, `collections/`). Se vuoi versionare il vault *cifrato*, rimuovi la riga relativa dal `.gitignore` — ma **mai** committare il vault in chiaro.
 
 Con `gh` CLI puoi creare il repo al volo:
 

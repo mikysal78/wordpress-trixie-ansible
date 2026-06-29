@@ -1,5 +1,5 @@
 ---
 profile: moderate
 exclude_paths:
+  - galaxy_roles/
   - collections/
-  - roles/mikysal78.ninux_common/

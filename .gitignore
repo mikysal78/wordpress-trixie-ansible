@@ -3,8 +3,10 @@ group_vars/all/vault.yml
 .vault_pass
 *.retry
 
-# Artefatti locali
+# Dipendenze Galaxy installate localmente (vedi ansible.cfg) - non versionate
+galaxy_roles/
 collections/
-roles/mikysal78.ninux_common/
+
+# Artefatti vari
 *.log
 .DS_Store

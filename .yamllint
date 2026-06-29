@@ -18,5 +18,5 @@ rules:
     forbid-explicit-octal: true
 
 ignore: |
+  galaxy_roles/
   collections/
-  roles/mikysal78.ninux_common/
