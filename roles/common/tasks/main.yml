@@ -28,9 +28,18 @@
     name: "{{ common_packages }}"
     state: present
 
-- name: Imposta il fuso orario
-  community.general.timezone:
-    name: "{{ common_timezone }}"
+- name: Imposta il fuso orario - /etc/timezone ({{ common_timezone }})
+  ansible.builtin.copy:
+    dest: /etc/timezone
+    content: "{{ common_timezone }}\n"
+    mode: "0644"
+
+- name: Imposta il fuso orario - symlink /etc/localtime
+  ansible.builtin.file:
+    src: "/usr/share/zoneinfo/{{ common_timezone }}"
+    dest: /etc/localtime
+    state: link
+    force: true
 
 - name: Genera e imposta il locale it_IT.UTF-8
   community.general.locale_gen:

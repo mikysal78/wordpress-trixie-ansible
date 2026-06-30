@@ -12,5 +12,6 @@ common_packages:
   - unzip
   - rsync
   - python3-pip
+  - util-linux-extra   # fornisce hwclock e altri tool su immagini minimal
   - acl            # necessario a Ansible per become non-root su file temporanei
 common_timezone: "Europe/Rome"

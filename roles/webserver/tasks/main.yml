@@ -52,12 +52,12 @@
     state: link
   notify: Reload nginx
 
-- name: Hardening globale Nginx (nascondi versione)
+- name: Hardening globale Nginx (security headers)
   ansible.builtin.copy:
     dest: /etc/nginx/conf.d/security.conf
     mode: "0644"
     content: |
-      server_tokens off;
+      # server_tokens e' impostato nel vhost (Debian Trixie lo definisce gia' in nginx.conf)
       add_header X-Content-Type-Options "nosniff" always;
       add_header X-Frame-Options "SAMEORIGIN" always;
       add_header Referrer-Policy "strict-origin-when-cross-origin" always;

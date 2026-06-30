@@ -1,8 +1,9 @@
 ---
-- name: Pacchetti necessari (apache2-utils per htpasswd)
+- name: Pacchetti necessari (htpasswd + passlib per il modulo)
   ansible.builtin.apt:
     name:
       - apache2-utils
+      - python3-passlib
     state: present
   when: phpmyadmin_basic_auth | bool
 

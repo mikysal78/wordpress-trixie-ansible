@@ -12,6 +12,11 @@ wp_admin_email: "[email protected]"
 wp_locale: "it_IT"
 wp_root: "/var/www/{{ wp_domain }}"
 
+# Il ruolo mikysal78.ninux_common itera su 'users'. Lascia [] per non aggiungere
+# utenti tramite quel ruolo (gestiamo l'utente sudo nel ruolo 'hardening'),
+# oppure popolalo con la tua lista standard (name/groups/...).
+users: []
+
 # Forza il www o il non-www (scegli: "none" | "www" | "non-www")
 wp_canonical: "non-www"
 
