@@ -25,6 +25,11 @@ jobs:
       - name: Installa collections richieste
         run: ansible-galaxy collection install -r requirements.yml
 
+      - name: Prepara i file di config dagli esempi
+        run: |
+          cp group_vars/all/vars.yml.example group_vars/all/vars.yml
+          cp group_vars/all/vault.yml.example group_vars/all/vault.yml
+
       - name: yamllint
         run: yamllint .
 

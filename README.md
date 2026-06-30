@@ -79,8 +79,8 @@ wordpress-trixie-ansible/
 ├── letsencrypt.yml           # playbook standalone per HTTPS
 ├── inventory/hosts.yml       # IP del CT
 ├── group_vars/all/
-│   ├── vars.yml              # configurazione (dominio, utenti, toggle, tuning)
-│   └── vault.yml.example     # password (da copiare in vault.yml e cifrare)
+│   ├── vars.yml.example      # configurazione: copia in vars.yml (ignorato da git)
+│   └── vault.yml.example     # password: copia in vault.yml e cifra (ignorato da git)
 └── roles/
     ├── common/               # mikysal78.ninux_common + pacchetti base
     ├── hardening/            # firewall, ssh, fail2ban, sysctl, updates
@@ -166,6 +166,13 @@ wp01:
 ```
 
 ### 5.2 Variabili principali — `group_vars/all/vars.yml`
+
+La configurazione vive in un file **non versionato** (così le tue impostazioni reali non finiscono su GitHub). Crealo dal modello:
+
+```bash
+cp group_vars/all/vars.yml.example group_vars/all/vars.yml
+nano group_vars/all/vars.yml
+```
 
 I valori che userai più spesso:
 
@@ -384,7 +391,7 @@ git remote add origin https://github.com/mikysal78/wordpress-trixie-ansible.git
 git push -u origin main
 ```
 
-> ✅ Il `.gitignore` **esclude già** `group_vars/all/vault.yml` (le password, anche se cifrate, non finiscono nel repo) e le dipendenze Galaxy installate localmente (`galaxy_roles/`, `collections/`). Se vuoi versionare il vault *cifrato*, rimuovi la riga relativa dal `.gitignore` — ma **mai** committare il vault in chiaro.
+> ✅ Il `.gitignore` **esclude già** `group_vars/all/vars.yml` e `group_vars/all/vault.yml` (la tua configurazione e le password non finiscono nel repo: vengono versionati solo i file `*.example`), le dipendenze Galaxy installate localmente (`galaxy_roles/`, `collections/`) e i file `credentials-*.txt`. Se vuoi versionare il vault *cifrato*, rimuovi la riga relativa dal `.gitignore` — ma **mai** committare vault o vars in chiaro.
 
 Con `gh` CLI puoi creare il repo al volo:
 
