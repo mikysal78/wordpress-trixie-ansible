@@ -5,10 +5,6 @@
     - name: Include mikysal78.ninux_common
       ansible.builtin.include_role:
         name: mikysal78.ninux_common
-      vars:
-        # Il ruolo itera su 'users'; garantiamo che sia sempre definito
-        # (usa la lista dell'utente se presente, altrimenti lista vuota).
-        users: "{{ users | default([]) }}"
   rescue:
     - name: Ruolo ninux_common non disponibile - proseguo
       ansible.builtin.debug:
