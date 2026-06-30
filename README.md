@@ -74,6 +74,7 @@ Struttura del repository:
 ```
 wordpress-trixie-ansible/
 ├── ansible.cfg
+├── CHANGELOG.md              # storico delle versioni
 ├── Makefile                  # scorciatoie: make deploy, make https, ...
 ├── requirements.yml          # ruoli/collections (include mikysal78.ninux_common)
 ├── site.yml                  # playbook principale
