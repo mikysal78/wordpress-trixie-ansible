@@ -86,10 +86,53 @@
       ansible.builtin.set_fact:
         site_url: "http{{ 's' if enable_https else '' }}://{{ wp_domain }}"
 
-    - name: Riepilogo accessi
+    - name: Riepilogo accessi e credenziali
       ansible.builtin.debug:
         msg:
-          - "Sito:        {{ site_url }}"
-          - "Admin WP:    {{ site_url }}/wp-admin/  (utente: {{ wp_admin_user }})"
-          - "phpMyAdmin:  {{ (site_url ~ '/' ~ phpmyadmin_alias ~ '/') if enable_phpmyadmin else 'disabilitato' }}"
-          - "Backup dir:  {{ backup_dir }}  (retention {{ backup_retention_days }} giorni)"
+          - "============== ACCESSI - {{ wp_domain }} =============="
+          - "Sito:           {{ site_url }}"
+          - "Admin WP:       {{ site_url }}/wp-admin/"
+          - "  utente:       {{ wp_admin_user }}"
+          - "  password:     {{ wp_admin_password }}"
+          - "Database:       {{ db_name }} (host {{ db_host }})"
+          - "  utente DB:    {{ db_user }}"
+          - "  password DB:  {{ db_password }}"
+          - "  root MySQL:   {{ mysql_root_password }}"
+          - "phpMyAdmin:     {{ (site_url ~ '/' ~ phpmyadmin_alias ~ '/') if enable_phpmyadmin else 'disabilitato' }}"
+          - "  Basic Auth:   {{ (phpmyadmin_basic_user ~ ' / ' ~ phpmyadmin_basic_password) if (enable_phpmyadmin and phpmyadmin_basic_auth) else 'n/d' }}"
+          - "Backup dir:     {{ backup_dir }} (retention {{ backup_retention_days }} giorni)"
+          - "====================================================="
+          - "Credenziali salvate anche in: ./credentials-{{ wp_domain }}.txt (sul controller)"
+          - "ATTENZIONE: contengono password in chiaro. Salvale al sicuro e svuota lo storico del terminale."
+
+    - name: Salva le credenziali in un file sul controller (0600)
+      ansible.builtin.copy:
+        dest: "./credentials-{{ wp_domain }}.txt"
+        mode: "0600"
+        content: |
+          # Credenziali WordPress - {{ wp_domain }}
+          # Generato il {{ ansible_date_time.iso8601 }} - CONSERVARE AL SICURO
+
+          [Sito]
+          URL            = {{ site_url }}
+          Admin WP URL   = {{ site_url }}/wp-admin/
+          Admin utente   = {{ wp_admin_user }}
+          Admin password = {{ wp_admin_password }}
+
+          [Database]
+          Nome DB        = {{ db_name }}
+          Host DB        = {{ db_host }}
+          Utente DB      = {{ db_user }}
+          Password DB    = {{ db_password }}
+          Root MySQL     = {{ mysql_root_password }}
+
+          [phpMyAdmin]
+          URL            = {{ (site_url ~ '/' ~ phpmyadmin_alias ~ '/') if enable_phpmyadmin else 'disabilitato' }}
+          Basic Auth     = {{ (phpmyadmin_basic_user ~ ' / ' ~ phpmyadmin_basic_password) if (enable_phpmyadmin and phpmyadmin_basic_auth) else 'n/d' }}
+
+          [Backup]
+          Directory      = {{ backup_dir }}
+          Retention      = {{ backup_retention_days }} giorni
+      delegate_to: localhost
+      become: false
+      no_log: false

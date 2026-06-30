@@ -7,6 +7,9 @@ group_vars/all/vault.yml
 galaxy_roles/
 collections/
 
+# Credenziali generate dal deploy (mai versionare)
+credentials-*.txt
+
 # Artefatti vari
 *.log
 .DS_Store
