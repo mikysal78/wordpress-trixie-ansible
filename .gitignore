@@ -1,6 +1,7 @@
 # Segreti / vault
 group_vars/all/vault.yml
 group_vars/all/vars.yml
+inventory/hosts.yml
 .vault_pass
 *.retry
 

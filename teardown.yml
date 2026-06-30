@@ -1,0 +1,180 @@
+---
+# =====================================================================
+#  TEARDOWN - ripulisce il CT per ripartire da zero (NON distrugge il CT)
+# =====================================================================
+#  Rimuove: WordPress, Nginx, MariaDB, Redis, PHP, phpMyAdmin, certbot,
+#  regole UFW, fail2ban, backup, cron e file generati.
+#
+#  USO (richiede conferma esplicita per sicurezza):
+#    ansible-playbook teardown.yml -e confirm=ROMACLUBMATERA
+#
+#  Sostituisci ROMACLUBMATERA con il valore di teardown_token (vedi sotto)
+#  se lo personalizzi. Di default e' "PULISCI".
+# =====================================================================
+
+- name: Teardown del CT WordPress
+  hosts: wordpress
+  become: true
+
+  vars:
+    teardown_token: "PULISCI"
+    # Per sicurezza NON tocca il DNS ne' i certificati gia' emessi su Let's Encrypt
+    # (resta il rate-limit di 5/settimana). Cancella solo i file locali del cert.
+
+  pre_tasks:
+    - name: Richiedi conferma esplicita
+      ansible.builtin.assert:
+        that:
+          - confirm is defined
+          - confirm == teardown_token
+        fail_msg: >-
+          Operazione DISTRUTTIVA non confermata.
+          Rilancia con:  -e confirm={{ teardown_token }}
+        success_msg: "Conferma ricevuta. Procedo con la pulizia del CT."
+        quiet: true
+
+  tasks:
+    # ---------- Servizi: stop (ignora se gia' assenti) ----------
+    - name: Ferma i servizi
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: stopped
+      failed_when: false
+      loop:
+        - nginx
+        - mariadb
+        - redis-server
+        - fail2ban
+        - "php{{ php_version | default('8.4') }}-fpm"
+
+    # ---------- Cron e script di backup ----------
+    - name: Rimuovi il cron di backup
+      ansible.builtin.cron:
+        name: "wordpress-backup"
+        user: root
+        state: absent
+
+    - name: Rimuovi script e file di backup
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /usr/local/sbin/wp-backup.sh
+        - /root/.wp-backup.cnf
+        - "{{ backup_dir | default('/var/backups/wordpress') }}"
+
+    # ---------- WordPress e phpMyAdmin (file) ----------
+    - name: Rimuovi la document root del sito
+      ansible.builtin.file:
+        path: "{{ wp_root | default('/var/www/' ~ (wp_domain | default(''))) }}"
+        state: absent
+      when: (wp_domain | default('')) | length > 0
+
+    - name: Rimuovi tutte le doc-root sotto /var/www (eccetto html)
+      ansible.builtin.shell: |
+        find /var/www -mindepth 1 -maxdepth 1 ! -name html -exec rm -rf {} +
+      args:
+        executable: /bin/bash
+      changed_when: true
+      failed_when: false
+
+    - name: Rimuovi phpMyAdmin
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /usr/share/phpmyadmin
+        - /var/lib/phpmyadmin
+        - /etc/nginx/.htpasswd-pma
+
+    - name: Rimuovi WP-CLI
+      ansible.builtin.file:
+        path: /usr/local/bin/wp
+        state: absent
+
+    # ---------- Certificati locali (NON revoca su Let's Encrypt) ----------
+    - name: Rimuovi i file dei certificati Let's Encrypt (solo locali)
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/letsencrypt
+        - /var/log/letsencrypt
+
+    # ---------- Firewall ----------
+    - name: Reset di UFW
+      community.general.ufw:
+        state: reset
+      failed_when: false
+
+    - name: Disabilita UFW
+      community.general.ufw:
+        state: disabled
+      failed_when: false
+
+    # ---------- Disinstalla i pacchetti ----------
+    - name: Rimuovi i pacchetti dello stack
+      ansible.builtin.apt:
+        name:
+          - nginx
+          - nginx-common
+          - mariadb-server
+          - mariadb-client
+          - redis-server
+          - "php{{ php_version | default('8.4') }}-fpm"
+          - phpmyadmin
+          - certbot
+          - python3-certbot-nginx
+          - fail2ban
+        state: absent
+        purge: true
+        autoremove: true
+      failed_when: false
+
+    - name: Purga i pacchetti PHP residui
+      ansible.builtin.apt:
+        name:
+          - "php{{ php_version | default('8.4') }}-fpm"
+          - "php{{ php_version | default('8.4') }}-mysql"
+          - "php{{ php_version | default('8.4') }}-curl"
+          - "php{{ php_version | default('8.4') }}-gd"
+          - "php{{ php_version | default('8.4') }}-mbstring"
+          - "php{{ php_version | default('8.4') }}-xml"
+          - "php{{ php_version | default('8.4') }}-zip"
+          - "php{{ php_version | default('8.4') }}-intl"
+          - "php{{ php_version | default('8.4') }}-bcmath"
+          - "php{{ php_version | default('8.4') }}-imagick"
+          - "php{{ php_version | default('8.4') }}-opcache"
+          - "php{{ php_version | default('8.4') }}-redis"
+          - "php{{ php_version | default('8.4') }}-common"
+        state: absent
+        purge: true
+        autoremove: true
+      failed_when: false
+
+    # ---------- Dati e config residui ----------
+    - name: Rimuovi dati e configurazioni residue
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/mysql
+        - /etc/mysql
+        - /etc/nginx
+        - /etc/redis
+        - /etc/fail2ban
+        - /var/cache/nginx
+        - /root/.my.cnf
+
+    - name: Pulizia finale APT
+      ansible.builtin.apt:
+        autoclean: true
+      failed_when: false
+
+  post_tasks:
+    - name: Esito
+      ansible.builtin.debug:
+        msg:
+          - "CT ripulito. Lo stack WordPress e' stato rimosso."
+          - "NB: i certificati su Let's Encrypt NON sono stati revocati (resta il rate-limit)."
+          - "Ora puoi rilanciare il deploy: make deploy"

@@ -29,6 +29,7 @@ jobs:
         run: |
           cp group_vars/all/vars.yml.example group_vars/all/vars.yml
           cp group_vars/all/vault.yml.example group_vars/all/vault.yml
+          cp inventory/hosts.yml.example inventory/hosts.yml
 
       - name: yamllint
         run: yamllint .

@@ -18,6 +18,7 @@ help: ## Mostra questo aiuto
 init: ## Crea vars.yml e vault.yml dagli esempi (se mancanti)
 	@[ -f group_vars/all/vars.yml ] || cp group_vars/all/vars.yml.example group_vars/all/vars.yml
 	@[ -f group_vars/all/vault.yml ] || cp group_vars/all/vault.yml.example group_vars/all/vault.yml
+	@[ -f inventory/hosts.yml ] || cp inventory/hosts.yml.example inventory/hosts.yml
 	@echo "File pronti. Modifica vars.yml e vault.yml, poi cifra: make vault-encrypt"
 
 deps: ## Installa ruoli e collections Galaxy
@@ -51,6 +52,9 @@ https-force: ## Forza la ri-emissione del certificato (es. staging -> prod)
 backup: ## Lancia subito un backup sul CT
 	ansible wordpress -b -a "/usr/local/sbin/wp-backup.sh"
 
+teardown: ## Pulisce il CT (DISTRUTTIVO). Uso: make teardown CONFIRM=PULISCI
+	$(ANSIBLE_PLAYBOOK) teardown.yml $(VAULT) -e confirm=$(CONFIRM) $(EXTRA)
+
 vault-edit: ## Modifica il vault cifrato
 	ansible-vault edit group_vars/all/vault.yml
 
@@ -60,4 +64,4 @@ vault-encrypt: ## Cifra il vault
 vault-view: ## Mostra il contenuto del vault
 	ansible-vault view group_vars/all/vault.yml
 
-.PHONY: help init deps ping syntax lint check deploy https https-staging https-force backup vault-edit vault-encrypt vault-view
+.PHONY: help init deps ping syntax lint check deploy https https-staging https-force backup teardown vault-edit vault-encrypt vault-view

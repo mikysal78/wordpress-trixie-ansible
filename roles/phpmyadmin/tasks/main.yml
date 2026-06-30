@@ -39,13 +39,37 @@
     group: www-data
     mode: "0700"
 
-- name: Genera config.inc.php (con blowfish secret)
+# --- blowfish secret persistente (fuori dalla webroot) ---
+- name: Verifica se il blowfish secret esiste gia'
+  ansible.builtin.stat:
+    path: "{{ phpmyadmin_blowfish_file }}"
+  register: phpmyadmin_blowfish_stat
+
+- name: Genera il blowfish secret una sola volta
+  ansible.builtin.copy:
+    dest: "{{ phpmyadmin_blowfish_file }}"
+    content: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
+    owner: www-data
+    group: www-data
+    mode: "0600"
+  when: not phpmyadmin_blowfish_stat.stat.exists
+  no_log: true
+
+- name: Leggi il blowfish secret persistente
+  ansible.builtin.slurp:
+    src: "{{ phpmyadmin_blowfish_file }}"
+  register: phpmyadmin_blowfish_data
+  no_log: true
+
+- name: Genera config.inc.php
   ansible.builtin.template:
     src: config.inc.php.j2
     dest: "{{ phpmyadmin_install_dir }}/config.inc.php"
     owner: www-data
     group: www-data
     mode: "0640"
+  vars:
+    phpmyadmin_blowfish: "{{ phpmyadmin_blowfish_data.content | b64decode | trim }}"
 
 - name: Crea il file Basic Auth davanti a phpMyAdmin
   community.general.htpasswd:
@@ -57,16 +81,3 @@
     mode: "0640"
   when: phpmyadmin_basic_auth | bool
   no_log: true
-
-- name: Inserisci il blocco location di phpMyAdmin nel vhost
-  ansible.builtin.blockinfile:
-    path: "/etc/nginx/sites-available/{{ wp_domain }}.conf"
-    marker: "    # {mark} PHPMYADMIN"
-    insertbefore: '^\}'
-    block: |
-      {{ lookup('template', 'pma_location.conf.j2') | indent(4, false) }}
-  notify: Reload nginx
-
-- name: Verifica Nginx
-  ansible.builtin.command: nginx -t
-  changed_when: false

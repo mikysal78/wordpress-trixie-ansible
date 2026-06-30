@@ -79,7 +79,8 @@ wordpress-trixie-ansible/
 ├── requirements.yml          # ruoli/collections (include mikysal78.ninux_common)
 ├── site.yml                  # playbook principale
 ├── letsencrypt.yml           # playbook standalone per HTTPS
-├── inventory/hosts.yml       # IP del CT
+├── teardown.yml              # pulizia del CT per ripartire da zero (distruttivo)
+├── inventory/hosts.yml.example  # IP del CT: copia in hosts.yml (ignorato da git)
 ├── group_vars/all/
 │   ├── vars.yml.example      # configurazione: copia in vars.yml (ignorato da git)
 │   └── vault.yml.example     # password: copia in vault.yml e cifra (ignorato da git)
@@ -160,7 +161,12 @@ ansible-galaxy role install mikysal78.ninux_common
 
 ### 5.1 Inventario
 
-Modifica `inventory/hosts.yml` con l'IP del CT:
+L'inventario è **non versionato** (l'IP reale non finisce su GitHub). Crealo dal modello e mettici l'IP del CT:
+
+```bash
+cp inventory/hosts.yml.example inventory/hosts.yml
+nano inventory/hosts.yml
+```
 
 ```yaml
 wp01:
@@ -294,6 +300,7 @@ Il `Makefile` raccoglie i comandi più frequenti. `make` (o `make help`) mostra 
 | `make deploy` | Deploy completo dello stack |
 | `make https-staging` / `make https` / `make https-force` | Certificato Let's Encrypt (test / reale / forzato) |
 | `make backup` | Lancia subito un backup sul CT |
+| `make teardown CONFIRM=PULISCI` | Ripulisce il CT (distruttivo) |
 | `make vault-edit` / `make vault-encrypt` / `make vault-view` | Gestione del vault |
 
 Variabili utili: `make deploy VAULT="--vault-password-file .vault_pass"` per non digitare la password del vault, oppure `make deploy EXTRA="-e ct_memory_mb=4096"` per passare override.
@@ -411,7 +418,7 @@ git remote add origin https://github.com/mikysal78/wordpress-trixie-ansible.git
 git push -u origin main
 ```
 
-> ✅ Il `.gitignore` **esclude già** `group_vars/all/vars.yml` e `group_vars/all/vault.yml` (la tua configurazione e le password non finiscono nel repo: vengono versionati solo i file `*.example`), le dipendenze Galaxy installate localmente (`galaxy_roles/`, `collections/`) e i file `credentials-*.txt`. Se vuoi versionare il vault *cifrato*, rimuovi la riga relativa dal `.gitignore` — ma **mai** committare vault o vars in chiaro.
+> ✅ Il `.gitignore` **esclude già** `group_vars/all/vars.yml`, `group_vars/all/vault.yml` e `inventory/hosts.yml` (la tua configurazione e le password non finiscono nel repo: vengono versionati solo i file `*.example`), le dipendenze Galaxy installate localmente (`galaxy_roles/`, `collections/`) e i file `credentials-*.txt`. Se vuoi versionare il vault *cifrato*, rimuovi la riga relativa dal `.gitignore` — ma **mai** committare vault o vars in chiaro.
 
 Con `gh` CLI puoi creare il repo al volo:
 

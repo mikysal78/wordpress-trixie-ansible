@@ -57,4 +57,27 @@ server {
 
     location = /favicon.ico { log_not_found off; access_log off; }
     location = /robots.txt  { log_not_found off; access_log off; }
+{% if enable_phpmyadmin | default(false) | bool %}
+
+    # phpMyAdmin (path non standard + Basic Auth)
+    location /{{ phpmyadmin_alias }} {
+        alias {{ phpmyadmin_install_dir | default('/usr/share/phpmyadmin') }};
+        index index.php;
+{% if phpmyadmin_basic_auth | default(true) | bool %}
+        auth_basic "Area riservata";
+        auth_basic_user_file /etc/nginx/.htpasswd-pma;
+{% endif %}
+
+        location ~ ^/{{ phpmyadmin_alias }}/(.+\.php)$ {
+            alias {{ phpmyadmin_install_dir | default('/usr/share/phpmyadmin') }}/$1;
+            fastcgi_pass unix:/run/php/php{{ php_version }}-fpm.sock;
+            include snippets/fastcgi-php.conf;
+            fastcgi_param SCRIPT_FILENAME {{ phpmyadmin_install_dir | default('/usr/share/phpmyadmin') }}/$1;
+        }
+        location ~* ^/{{ phpmyadmin_alias }}/(.+\.(?:css|js|png|gif|jpg|ico|woff2?|svg))$ {
+            alias {{ phpmyadmin_install_dir | default('/usr/share/phpmyadmin') }}/$1;
+            expires 7d;
+        }
+    }
+{% endif %}
 }
