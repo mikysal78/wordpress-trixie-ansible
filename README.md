@@ -74,6 +74,7 @@ Struttura del repository:
 ```
 wordpress-trixie-ansible/
 ├── ansible.cfg
+├── Makefile                  # scorciatoie: make deploy, make https, ...
 ├── requirements.yml          # ruoli/collections (include mikysal78.ninux_common)
 ├── site.yml                  # playbook principale
 ├── letsencrypt.yml           # playbook standalone per HTTPS
@@ -277,6 +278,24 @@ Cosa fa il ruolo `letsencrypt`:
 Variabili rilevanti (in `vars.yml` o via `-e`): `letsencrypt_staging`, `letsencrypt_force`, `letsencrypt_extra_domains`, `letsencrypt_email`.
 
 > ⚠️ **Rate limit**: Let's Encrypt limita a 5 emissioni/settimana per dominio. Usa **sempre `letsencrypt_staging=true`** per i test, poi passa a produzione con `letsencrypt_force=true`.
+
+### 6.2 Scorciatoie con `make`
+
+Il `Makefile` raccoglie i comandi più frequenti. `make` (o `make help`) mostra l'elenco:
+
+| Comando | Azione |
+|---|---|
+| `make init` | Crea `vars.yml` e `vault.yml` dagli esempi |
+| `make deps` | Installa ruoli e collections Galaxy |
+| `make ping` | Verifica la connessione al CT |
+| `make lint` | `yamllint` + `ansible-lint` |
+| `make check` | Dry-run con diff |
+| `make deploy` | Deploy completo dello stack |
+| `make https-staging` / `make https` / `make https-force` | Certificato Let's Encrypt (test / reale / forzato) |
+| `make backup` | Lancia subito un backup sul CT |
+| `make vault-edit` / `make vault-encrypt` / `make vault-view` | Gestione del vault |
+
+Variabili utili: `make deploy VAULT="--vault-password-file .vault_pass"` per non digitare la password del vault, oppure `make deploy EXTRA="-e ct_memory_mb=4096"` per passare override.
 
 ---
 
