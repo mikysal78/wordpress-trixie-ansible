@@ -80,6 +80,8 @@ wordpress-trixie-ansible/
 ├── site.yml                  # playbook principale
 ├── letsencrypt.yml           # playbook standalone per HTTPS
 ├── teardown.yml              # pulizia del CT per ripartire da zero (distruttivo)
+├── import-site.yml           # importa un backup del vecchio sito (migrazione)
+├── scripts/import-site.sh    # script di import eseguito sul CT
 ├── inventory/hosts.yml.example  # IP del CT: copia in hosts.yml (ignorato da git)
 ├── group_vars/all/
 │   ├── vars.yml.example      # configurazione: copia in vars.yml (ignorato da git)
@@ -300,6 +302,7 @@ Il `Makefile` raccoglie i comandi più frequenti. `make` (o `make help`) mostra 
 | `make deploy` | Deploy completo dello stack |
 | `make https-staging` / `make https` / `make https-force` | Certificato Let's Encrypt (test / reale / forzato) |
 | `make backup` | Lancia subito un backup sul CT |
+| `make import ZIP=...` | Importa un backup del vecchio sito |
 | `make teardown CONFIRM=PULISCI` | Ripulisce il CT (distruttivo) |
 | `make vault-edit` / `make vault-encrypt` / `make vault-view` | Gestione del vault |
 
@@ -365,6 +368,33 @@ chown -R www-data:www-data /var/www/example.com
 > Per un setup *enterprise*, copia gli archivi **off-site** (rsync/restic verso un altro host o object storage). Il formato `.tar` rende l'export semplice.
 
 ---
+
+## 8.1 Import di un sito esistente (migrazione)
+
+`import-site.yml` + `scripts/import-site.sh` importano nel sito nuovo un backup del plugin **Backup Migration** (file `BM_*.zip`), impostando dominio e credenziali nuove. Lo script gira **sul CT** e in sequenza: fa un **backup di sicurezza** del sito attuale, svuota e reimporta il database (rinominando il prefisso temporaneo del dump), sincronizza `wp-content` (uploads/themes/plugins), esegue il **search-replace** del dominio vecchio→nuovo sui dati serializzati, imposta l'utente admin con la **nuova password**, riattiva Redis e sistema permessi e cache.
+
+Le credenziali del database (`wp-config.php`) **non vengono toccate**: restano quelle nuove.
+
+```bash
+# via Ansible (consigliato): carica lo zip sul CT ed esegue tutto
+make import ZIP=/percorso/locale/BM_xxx.zip
+# equivale a:
+ansible-playbook import-site.yml --ask-vault-pass -e import_backup_file=/percorso/BM_xxx.zip
+```
+
+Oppure direttamente sul CT (dopo aver copiato lì lo zip):
+
+```bash
+NEW_ADMIN_PASS='NuovaPassword!' sudo -E /usr/local/sbin/import-site.sh \
+  --zip /root/BM_xxx.zip --site-root /var/www/romaclubmatera.it \
+  --new-domain romaclubmatera.it --admin-user miky --yes
+```
+
+Note importanti:
+- il dominio vecchio viene letto dal manifest del backup; quello nuovo da `wp_domain`;
+- gli utenti del vecchio sito vengono importati: l'admin indicato riceve la **nuova** password (gli altri restano con le credenziali vecchie, cambiale o rimuovile dalla dashboard);
+- viene sempre creato un **backup pre-import** in `/var/backups/` sul CT: se qualcosa non torna, puoi ripristinare;
+- dopo l'import, controlla home, menu, media e i plugin pesanti (Elementor, Slider Revolution).
 
 ## 9. Manutenzione e tag utili
 

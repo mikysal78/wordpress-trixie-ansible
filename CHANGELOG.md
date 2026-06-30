@@ -4,6 +4,25 @@ Tutte le modifiche rilevanti a questo progetto sono documentate qui.
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/)
 e il versionamento [SemVer](https://semver.org/lang/it/).
 
+## [1.0.3] - 2026-06-30
+
+Migrazione di un sito esistente da backup "Backup Migration" (BMI).
+
+### Aggiunto
+- **scripts/import-site.sh** + **import-site.yml** + `make import ZIP=...`: importano
+  un backup BMI nel sito nuovo. Fanno un backup di sicurezza, reimportano il DB
+  (rinominando il prefisso temporaneo del dump), sincronizzano `wp-content`,
+  eseguono il search-replace del dominio, impostano l'admin con la nuova password,
+  riattivano Redis e sistemano permessi e cache. Le credenziali DB restano le nuove.
+
+### Corretto
+- import: `home`/`siteurl` aggiornati solo se diversi (no errore "unchanged"
+  dopo il search-replace); upgrade `http://` -> `https://` per evitare mixed-content.
+- import: `rsync` tollerante ai codici 23/24 (delete parziali non fatali).
+- import: i comandi post-import girano con `--skip-plugins --skip-themes`, così un
+  plugin con file incompleti (es. Elementor a metà aggiornamento) non blocca la migrazione.
+- import: rigenerazione automatica del CSS di Elementor dopo il cambio dominio.
+
 ## [1.0.2] - 2026-06-30
 
 Correzioni emerse dal deploy reale in produzione e miglioramenti di idempotenza.
@@ -54,5 +73,6 @@ in Proxmox, con HTTPS valido.
 - `vars.yml` e `vault.yml` sono esclusi dal repo: si creano dai rispettivi `.example`.
 - Dipendenze Galaxy installate in `galaxy_roles/` e `collections/` (non versionate).
 
+[1.0.3]: https://github.com/mikysal78/wordpress-trixie-ansible/releases/tag/v1.0.3
 [1.0.2]: https://github.com/mikysal78/wordpress-trixie-ansible/releases/tag/v1.0.2
 [1.0.0]: https://github.com/mikysal78/wordpress-trixie-ansible/releases/tag/v1.0.0

@@ -1,0 +1,94 @@
+---
+# =====================================================================
+#  import-site.yml - Carica un backup BMI sul CT ed esegue l'import
+#  nel WordPress nuovo, impostando dominio e credenziali nuove.
+#
+#  USO:
+#    ansible-playbook import-site.yml --ask-vault-pass \
+#      -e import_backup_file=/percorso/locale/BM_xxx.zip
+#
+#  Variabili (override con -e):
+#    import_backup_file   percorso LOCALE dello zip BMI (obbligatorio)
+#    import_admin_user    utente admin da impostare (default: wp_admin_user)
+#    import_admin_email   email admin (default: wp_admin_email)
+#    import_admin_pass    nuova password admin (default: dal vault)
+#    import_old_domain    dominio vecchio (default: dal manifest del backup)
+# =====================================================================
+
+- name: Import del vecchio sito nel WordPress nuovo
+  hosts: wordpress
+  become: true
+
+  vars:
+    import_admin_user: "{{ wp_admin_user }}"
+    import_admin_email: "{{ wp_admin_email }}"
+    import_admin_pass: "{{ wp_admin_password }}"
+    import_old_domain: ""
+    _remote_zip: "/root/{{ import_backup_file | basename }}"
+
+  pre_tasks:
+    - name: Verifica che sia stato indicato il backup
+      ansible.builtin.assert:
+        that:
+          - import_backup_file is defined
+          - import_backup_file | length > 0
+        fail_msg: "Passa il backup con: -e import_backup_file=/percorso/BM_xxx.zip"
+        quiet: true
+
+    - name: Verifica che il backup esista in locale
+      ansible.builtin.stat:
+        path: "{{ import_backup_file }}"
+      delegate_to: localhost
+      become: false
+      register: _bkp
+      failed_when: not _bkp.stat.exists
+
+  tasks:
+    - name: Carica lo zip del backup sul CT
+      ansible.posix.synchronize:
+        src: "{{ import_backup_file }}"
+        dest: "{{ _remote_zip }}"
+      register: _upload
+      retries: 2
+      delay: 5
+      until: _upload is succeeded
+
+    - name: Copia lo script di import sul CT
+      ansible.builtin.copy:
+        src: scripts/import-site.sh
+        dest: /usr/local/sbin/import-site.sh
+        mode: "0750"
+
+    - name: Esegui l'import (non interattivo)
+      ansible.builtin.command:
+        cmd: >
+          /usr/local/sbin/import-site.sh
+          --zip {{ _remote_zip }}
+          --site-root {{ wp_root }}
+          --new-domain {{ wp_domain }}
+          {{ ('--old-domain ' ~ import_old_domain) if import_old_domain | length > 0 else '' }}
+          --admin-user {{ import_admin_user }}
+          --admin-email {{ import_admin_email }}
+          --yes
+      environment:
+        NEW_ADMIN_PASS: "{{ import_admin_pass }}"
+      register: _import
+      no_log: true
+      changed_when: true
+
+    - name: Output dell'import
+      ansible.builtin.debug:
+        var: _import.stdout_lines
+
+    - name: Rimuovi lo zip dal CT
+      ansible.builtin.file:
+        path: "{{ _remote_zip }}"
+        state: absent
+
+  post_tasks:
+    - name: Esito
+      ansible.builtin.debug:
+        msg:
+          - "Import completato su https://{{ wp_domain }}/"
+          - "Admin: https://{{ wp_domain }}/wp-admin/ (utente: {{ import_admin_user }})"
+          - "Backup pre-import salvato sul CT in /var/backups/."

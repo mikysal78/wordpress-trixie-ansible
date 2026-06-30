@@ -52,6 +52,9 @@ https-force: ## Forza la ri-emissione del certificato (es. staging -> prod)
 backup: ## Lancia subito un backup sul CT
 	ansible wordpress -b -a "/usr/local/sbin/wp-backup.sh"
 
+import: ## Importa un backup del vecchio sito. Uso: make import ZIP=/percorso/BM_xxx.zip
+	$(ANSIBLE_PLAYBOOK) import-site.yml $(VAULT) -e import_backup_file=$(ZIP) $(EXTRA)
+
 teardown: ## Pulisce il CT (DISTRUTTIVO). Uso: make teardown CONFIRM=PULISCI
 	$(ANSIBLE_PLAYBOOK) teardown.yml $(VAULT) -e confirm=$(CONFIRM) $(EXTRA)
 
@@ -64,4 +67,4 @@ vault-encrypt: ## Cifra il vault
 vault-view: ## Mostra il contenuto del vault
 	ansible-vault view group_vars/all/vault.yml
 
-.PHONY: help init deps ping syntax lint check deploy https https-staging https-force backup teardown vault-edit vault-encrypt vault-view
+.PHONY: help init deps ping syntax lint check deploy https https-staging https-force backup import teardown vault-edit vault-encrypt vault-view
